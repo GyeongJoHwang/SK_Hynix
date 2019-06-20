@@ -29,19 +29,55 @@ def generate_normal(n_samples, p=0.8, seed=2019):
     Y1 = np.ones(n)
     Y2 = np.zeros(n)
     X_train = np.concatenate((X1[:n_train], X2[:n_train]))
-    X_test = np.concatenate((X1[n_train:], X2[n_train:]))
+    X_test = np.concatenate((X1[n_train:], X2[n_train:])) + np.random.randn(1) * 10
     Y_train = np.concatenate((Y1[:n_train], Y2[:n_train]))
     Y_test = np.concatenate((Y1[n_train:], Y2[n_train:]))
     return (X_train.T, Y_train), (X_test.T, Y_test)
 
-def plot(data, labels, title='Train data'):
-    plt.scatter(data.T[labels==1][:, 0], data.T[labels==1][:, 1], color='b', edgecolor='k', label='label : 1')
-    plt.scatter(data.T[labels==0][:, 0], data.T[labels==0][:, 1], color='r', edgecolor='k', label='label : 0')
+# def plot(data, labels, title='Train data'):
+#     plt.scatter(data.T[labels==1][:, 0], data.T[labels==1][:, 1], color='b', edgecolor='k', label='label : 1')
+#     plt.scatter(data.T[labels==0][:, 0], data.T[labels==0][:, 1], color='r', edgecolor='k', label='label : 0')
+#     plt.grid(True)
+#     plt.title(title)
+#     plt.legend()
+    
+    
+# def decision_boundary(w, b, xlim, ylim, colormap):
+#     xmin, xmax = xlim
+#     ymin, ymax = ylim
+#     xx, yy = np.meshgrid(np.linspace(xmin, xmax, 30), np.linspace(ymin, ymax, 30))
+#     grids = np.c_[xx.ravel(), yy.ravel()]
+#     predict = forward(w, b, grids.T)
+#     Z = predict.reshape(xx.shape)
+#     plt.contour(xx, yy, Z, levels=0.5, colors='k')
+#     if colormap == True:
+#         plt.contourf(xx, yy, Z, cmap='RdBu', alpha=0.7)
+        
+        
+# def draw_boundary(w, b, data, labels, title='Train data', colormap=False):
+#     # 먼저 데이터 플롯한다
+#     plot(data, labels, title=title)
+#     axes = plt.gca() # 현재 플롯된 axes객체를 가져온다
+#     xlim = axes.get_xlim()
+#     ylim = axes.get_ylim()
+#     # 학습모델의 Decision boundary
+#     decision_boundary(w, b, xlim, ylim, colormap)
+
+def plot(data, labels, title='Train data', s=35, axis=False, xlim=None, ylim=None):
+    plt.scatter(data.T[labels==1][:, 0], data.T[labels==1][:, 1], color='b', edgecolor='k', label='label : 1', s=s)
+    plt.scatter(data.T[labels==0][:, 0], data.T[labels==0][:, 1], color='r', edgecolor='k', label='label : 0', s=s)
     plt.grid(True)
     plt.title(title)
     plt.legend()
-    
-    
+    if axis:
+        plt.axvline(x=0, color='black', linewidth=1)
+        plt.axhline(y=0, color='black', linewidth=1)
+    if xlim:
+        plt.xlim(*xlim)
+    if ylim:
+        plt.ylim(*ylim)
+        
+        
 def decision_boundary(w, b, xlim, ylim, colormap):
     xmin, xmax = xlim
     ymin, ymax = ylim
@@ -54,9 +90,9 @@ def decision_boundary(w, b, xlim, ylim, colormap):
         plt.contourf(xx, yy, Z, cmap='RdBu', alpha=0.7)
         
         
-def draw_boundary(w, b, data, labels, title='Train data', colormap=False):
+def draw_boundary(w, b, data, labels, title='Train data', colormap=False, s=35, axis=False, xlim=None, ylim=None):
     # 먼저 데이터 플롯한다
-    plot(data, labels, title=title)
+    plot(data, labels, title=title, s=s, axis=axis, xlim=xlim, ylim=ylim)
     axes = plt.gca() # 현재 플롯된 axes객체를 가져온다
     xlim = axes.get_xlim()
     ylim = axes.get_ylim()
@@ -74,3 +110,47 @@ def forward(w, b, X):
 
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
+
+def fit(X, Y):
+    
+    ### START CODE HERE ### 
+    w =(np.linalg.inv(X.T@X)@X.T)@Y
+    ### END CODE HERE ###
+    return w
+
+def get_accuracy(w, X, Y):
+    
+    pred = X.dot(w)
+    ### START CODE HERE ### 
+    yhat = np.sign(pred)
+    n_samples = len(Y)
+    n_correct = (yhat == Y).sum()
+    acc = n_correct / n_samples * 100
+    ### END CODE HERE ###
+    return acc
+
+def add_bias(X):
+    
+    ### START CODE HERE ###
+    X_bias = np.concatenate((X, np.ones((len(X), 1))), axis=1)
+    ### END CODE HERE ###
+    return X_bias
+
+
+def LeastSquare(X_train, Y_train, X_test, Y_test, bias=False):
+    
+    # add bias term
+    if bias:
+        X_train = add_bias(X_train)
+        X_test = add_bias(X_test)
+        
+    # get optimal sol
+    w = fit(X_train, Y_train)
+    
+    # train accuracy
+    train_acc = get_accuracy(w, X_train, Y_train)
+    
+    # test accuracy
+    test_acc = get_accuracy(w, X_test, Y_test)
+    
+    return w, train_acc, test_acc

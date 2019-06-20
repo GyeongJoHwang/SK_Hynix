@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import make_moons, make_circles
 
 
+
 def generate_data(n_samples, set_type='Moon', p=0.8, seed=2019):
     assert(set_type in ['Moon', 'Circle', 'Planar']), 'You must choice set type one of "Moon" or "Circle" or "Planar" !'
     np.random.seed(seed)
@@ -32,6 +33,28 @@ def plot(data, labels, title='Train data', s=35, axis=False, xlim=None, ylim=Non
         plt.xlim(*xlim)
     if ylim:
         plt.ylim(*ylim)
+        
+        
+def decision_boundary(parameters, xlim, ylim, colormap):
+    xmin, xmax = xlim
+    ymin, ymax = ylim
+    xx, yy = np.meshgrid(np.linspace(xmin, xmax, 30), np.linspace(ymin, ymax, 30))
+    grids = np.c_[xx.ravel(), yy.ravel()]
+    predict = _forward(grids.T, parameters)
+    Z = predict.reshape(xx.shape)
+    plt.contour(xx, yy, Z, levels=0.5, colors='k')
+    if colormap == True:
+        plt.contourf(xx, yy, Z, cmap='RdBu', alpha=0.7)
+        
+        
+def draw_boundary(parameters, data, labels, title='Train data', colormap=False, s=35, axis=False, xlim=None, ylim=None):
+    # 먼저 데이터 플롯한다
+    plot(data, np.squeeze(labels), title=title, s=s, axis=axis, xlim=xlim, ylim=ylim)
+    axes = plt.gca() # 현재 플롯된 axes객체를 가져온다
+    xlim = axes.get_xlim()
+    ylim = axes.get_ylim()
+    # 학습모델의 Decision boundary
+    decision_boundary(parameters, xlim, ylim, colormap)
 
 def sigmoid(z):
     '''
@@ -41,9 +64,12 @@ def sigmoid(z):
     '''
     return 1 / (1 + np.exp(-z))
 
-# GRADED FUNCTION: initialize_with_zeros
 
-def initialize_with_zeros(dim):
+def ReLU(z):
+    return np.maximum(0, z)
+
+
+def initialize_weights(dim):
     """
     This function creates a vector of zeros of shape (dim, 1) for w and initializes b to 0.
 
@@ -51,10 +77,12 @@ def initialize_with_zeros(dim):
     w -- initialized vector of shape (dim, 1)
     b -- initialized scalar (corresponds to the bias)
     """
+    ### manual seed
+    np.random.seed(0)
     
     ### START CODE HERE ### (≈ 1 line of code)
-    w = np.zeros(shape=(dim, 1))
-    b = 0
+    w = np.random.randn(dim, 1)
+    b = np.random.randn(1).item()
     ### END CODE HERE ###
 
     assert(w.shape == (dim, 1))
@@ -62,7 +90,7 @@ def initialize_with_zeros(dim):
     
     return w, b
 
-# GRADED FUNCTION: propagate
+
 
 def forward(w, b, X, Y):
     """
@@ -85,6 +113,34 @@ def forward(w, b, X, Y):
     
     return Yhat, cost
 
+# def _forward(w, b, X):
+
+#     m = X.shape[1]
+    
+#     # FORWARD PROPAGATION
+#     ### START CODE HERE ### (≈ 2 lines of code)
+#     Yhat = sigmoid(np.dot(w.T, X) + b)
+#     ### END CODE HERE ###
+    
+#     return Yhat
+
+# GRADED FUNCTION: forward_propagation
+
+def _forward(X, parameters):
+
+    W1 = parameters['W1']
+    b1 = parameters['b1']
+    W2 = parameters['W2']
+    b2 = parameters['b2']
+
+    Z1 = np.dot(W1, X) + b1
+    A1 = ReLU(Z1)
+    Z2 = np.dot(W2, A1) + b2
+    A2 = sigmoid(Z2)
+    
+    assert(A2.shape == (1, X.shape[1]))
+    return A2
+
 def backward(w, b, X, Y, Yhat):
     
     '''
@@ -100,11 +156,14 @@ def backward(w, b, X, Y, Yhat):
     '''
     
     m = X.shape[1]
+    # print(w, b, X, Y, Yhat)
     
     # BACKWARD PROPAGATION
     ### START CODE HERE ### (≈ 2 lines of code)
+    # print(Yhat-Y)
     dw = (1 / m) * np.dot(X, (Yhat - Y).T)
     db = (1 / m) * np.sum(Yhat - Y)
+    # print(dw, db)
     ### END CODE HERE ###
 
     assert(dw.shape == w.shape)
@@ -143,6 +202,7 @@ def fit(w, b, X, Y, num_iterations, learning_rate, print_cost=False):
         # Retrieve derivatives from grads
         dw = grads["dw"]
         db = grads["db"]
+        # print(dw, db)
         
         # update rule (≈ 2 lines of code)
         ### START CODE HERE ###
@@ -157,6 +217,7 @@ def fit(w, b, X, Y, num_iterations, learning_rate, print_cost=False):
         # Print the cost every 100 training examples
         if print_cost and i % 100 == 0:
             print ("Cost after iteration %i: %f" % (i, cost))
+            # print(dw, db)
     
     params = {"w": w,
               "b": b}
@@ -207,7 +268,7 @@ def Logistic(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rat
     
     ### START CODE HERE ###
     # initialize parameters with zeros (≈ 1 line of code)
-    w, b = initialize_with_zeros(X_train.shape[0])
+    w, b = initialize_weights(X_train.shape[0])
 
     # Gradient descent (≈ 1 line of code)
     parameters, grads, costs = fit(w, b, X_train, Y_train, num_iterations, learning_rate, print_cost)
