@@ -24,7 +24,7 @@ def load_dataset():
     return train_set_x_orig, train_set_y_orig.reshape(-1), test_set_x_orig, test_set_y_orig.reshape(-1), classes
 
 
-def generate_normal(n_samples, p=0.8, seed=2019):
+def generate_normal(n_samples, p=0.8, seed=20):
     np.random.seed(seed)
     n = n_samples // 2
     n_train = int(n * p)
@@ -33,7 +33,11 @@ def generate_normal(n_samples, p=0.8, seed=2019):
     Y1 = np.ones(n)
     Y2 = np.zeros(n)
     X_train = np.concatenate((X1[:n_train], X2[:n_train]))
-    X_test = np.concatenate((X1[n_train:], X2[n_train:])) + np.random.randn(1) * 10
+    X_test = np.concatenate((X1[n_train:], X2[n_train:])) 
+#     np.random.seed(20)
+#     X_train = X_train + np.random.randn(1) * 1.9
+#     np.random.randn(200)
+#     X_test = X_test + np.random.randn(1) * 3
     Y_train = np.concatenate((Y1[:n_train], Y2[:n_train]))
     Y_test = np.concatenate((Y1[n_train:], Y2[n_train:]))
     return (X_train.T, Y_train), (X_test.T, Y_test)
@@ -89,7 +93,7 @@ def decision_boundary(w, b, xlim, ylim, colormap):
     grids = np.c_[xx.ravel(), yy.ravel()]
     predict = forward(w, b, grids.T)
     Z = predict.reshape(xx.shape)
-    plt.contour(xx, yy, Z, levels=0.5, colors='k')
+    plt.contour(xx, yy, Z, levels=[0.5], colors='k')
     if colormap == True:
         plt.contourf(xx, yy, Z, cmap='RdBu', alpha=0.7)
         
