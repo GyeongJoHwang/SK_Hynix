@@ -1,0 +1,226 @@
+\documentclass{article}
+
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage[margin=1.0in]{geometry}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{SK Hynix ML Courses - Convex Optimization in ML\\ \vspace{0.2in} Solutions to Exercise Problems 1}
+\author{TA Gyeongjo Hwang\footnote{hkj4276@kaist.ac.kr}, Doyeon Kim\footnote{dy.kim@kaist.ac.kr}}
+
+\begin{document}
+
+\maketitle
+
+\begin{enumerate}
+\item \textit{(1st order condition of convex functions)} Suppose $f: \mathbf{R}^d\rightarrow \mathbf{R}$ is differentiable (i.e., its gradient $\nabla f$ exists at each point in the domain of the function $f$, denoted by $\textbf{dom}f$). Suppose that $\textbf{dom}f$ is a convex set, i.e. for $x_1, x_2 \in \textbf{dom}f$, $\lambda x_1 + (1 - \lambda)x_2 \in \textbf{dom}f$ for all $\lambda \in [0,1]$. This problem explores the proof of the following claim: $f$ is convex if and only if
+\begin{equation}
+f(x) \geq \nabla f(x^*)^T(x-x^*)+f(x^*)~~~ \forall x,x^*\in \textbf{dom}f. \label{1st-ord-convexity}
+\end{equation}
+
+\begin{enumerate}
+\item Suppose that $d=1$. Show that if $f(x)$ is convex, then (1) holds.\\\\
+\textbf{Solution)}\\
+If $x=x^*$, it is straightforward that (1) holds. So let's focus on $x \neq x^*$ case. From the convexity of $f(x)$, we get the following inequality:
+\begin{equation*}
+	f(\lambda x+(1-\lambda)x^*)\leq \lambda f(x)+(1-\lambda)f(x^*)\;\;\;\; \forall x,x^*\in \textbf{dom}f,\; \lambda \in [0,1].
+\end{equation*}
+We can rewrite the above inequality as:
+\begin{equation*}
+	f(x)-f(x^*)\geq \frac{f(\lambda x+(1-\lambda)x^*)-f(x^*)}{\lambda (x-x^*)}(x-x^*).
+\end{equation*}
+From the definition of derivative, as $\lambda \rightarrow 0$, we get
+\begin{equation*}
+	f(x)-f(x^*)\geq f^\prime (x^*)(x-x^*).
+\end{equation*}
+\\
+
+\item Suppose that $d=1$. Show that if (1) holds, then $f(x)$ is convex.\\\\
+\textbf{Solution)}\\
+Let $z=\lambda x+(1-\lambda)y$ for all $x,y\in \textbf{dom}f$. Then, we can write
+\begin{align*}
+	f(x)\geq f^\prime (z)(x-z)+f(z)\quad\cdots\quad\text{\textcircled{1}}\\
+	f(y)\geq f^\prime (z)(y-z)+f(z)\quad\cdots\quad\text{\textcircled{2}}
+\end{align*}
+Then, $\lambda \cdot \text{\textcircled{1}}+(1-\lambda)\cdot \text{\textcircled{2}}$ can be written as
+\begin{align*}
+	\lambda f(x)+(1-\lambda)f(y)&\geq f(z)+f^\prime (z)(\lambda x+(1-\lambda)y-z)\\
+	&\stackrel{(1)}{=}f(z)\\
+	&=f(\lambda x+(1-\lambda)y)
+\end{align*}
+where (1) follows from the fact that $z=\lambda x+(1-\lambda)y$. By definition, $f(x)$ is convex.
+
+\item Prove the claim for arbitrary $d$.\\\\
+\textbf{Solution)}\\
+(i) (If $f(x)$ is convex, then (1) holds.)\\
+From the convexity of $f(x)$, we get the following inequality:
+\begin{equation*}
+	f(\lambda x+(1-\lambda)x^*)\leq \lambda f(x)+(1-\lambda)f(x^*)\;\;\;\; \forall x,x^*\in \textbf{dom}f,\; \lambda \in [0,1].
+\end{equation*}
+
+We can rewrite the above inequality as:
+\begin{equation*}
+	f(x)-f(x^*)\geq \frac{f(\lambda x+(1-\lambda)x^*)-f(x^*)}{\lambda}.
+\end{equation*}
+Now let $g(\lambda):=f(x^*+\lambda(x-x^*))$. Then we get
+\begin{equation*}
+	f(x)-f(x^*)\geq \frac{g(\lambda)-g(0)}{\lambda}.
+\end{equation*}
+As $\lambda \rightarrow 0$, we get
+\begin{equation*}
+	f(x)-f(x^*)\geq g^\prime (0).
+\end{equation*}
+Since $g^\prime(\lambda)=\nabla f(x^*+\lambda (x-x^*))^T(x-x^*)$, $g^\prime(0)$ is $\nabla f(x^*)^T(x-x^*)$. So if we substitute $\nabla f(x^*)^T(x-x^*)$ for $g^\prime(0)$ in the above inequality, we get 
+\begin{equation*}
+	f(x)\geq \nabla f(x^*)^T(x-x^*)+f(x^*).
+\end{equation*}
+Therefore, $f(x)$ is convex.\\
+
+(ii) (If (1) holds, then $f(x)$ is convex.)\\
+Let $z=\lambda x+(1-\lambda)y$ for all $x,y\in \textbf{dom}f$. Then, we can write
+\begin{align*}
+	f(x)\geq \nabla f(z)^T(x-z)+f(z)\quad\cdots\quad\text{\textcircled{1}}\\
+	f(y)\geq \nabla f(z)^T(y-z)+f(z)\quad\cdots\quad\text{\textcircled{2}}
+\end{align*}
+Then, $\lambda \cdot \text{\textcircled{1}}+(1-\lambda)\cdot \text{\textcircled{2}}$ can be written as
+\begin{align*}
+	\lambda f(x)+(1-\lambda)f(y)&\geq \nabla f(z)^T(\lambda x+(1-\lambda)y-z)+f(z)\\
+	&\stackrel{(1)}{=}f(z)\\
+	&=f(\lambda x+(1-\lambda)y)
+\end{align*}
+where (1) follows from the fact that $z=\lambda x+(1-\lambda)y$. By definition of convexity, this implies that $f(x)$ is convex.
+
+\end{enumerate}
+
+\item \textit{(Optimality condition for a convex function)} Consider the same function $f$ in Problem 1. Suppose that $f$ is convex. In class, it was claimed that
+\begin{equation}
+\nabla f(x^*) = 0 ~\Longleftrightarrow ~f(x) \geq f(x^*)~~ \forall x. \label{opt-condition}
+\end{equation}
+
+\begin{enumerate}
+\item Using (\ref{1st-ord-convexity}), prove the forward direction of the claim (2).\\\\
+\textbf{Solution)}\\
+By the inequality (\ref{1st-ord-convexity}) above, we have \begin{equation*}
+f(x_2) \geq \nabla f(x_1)^T(x_2 - x_1)+f(x_1)~~~ \text{for } \forall x_1 ,x_2 \in \textbf{dom}f.
+\end{equation*}
+Let $x_1 = x^*$ s.t. $\nabla f(x_1)=\nabla f(x^*)=0$. This implies that $f(x_2) \geq \nabla f(x^*)^T(x_2 - x^*)+f(x^*) = f(x^*)~~ \text{for } \forall x_2 \in \textbf{dom}f$. Therefore, $\nabla f(x^*) = 0 ~\Longrightarrow ~f(x) \geq f(x^*)~~ \forall x$. \\
+
+\item For $x, x^* \in \textbf{dom}f$, consider a point that lies in between:
+\begin{equation}
+z(\lambda) = \lambda x + (1 - \lambda)x^* \in \textbf{dom}f \label{convex-comb}
+\end{equation}
+where $\lambda \in [0,1]$. Show that
+\begin{equation}
+\dfrac{d}{d\lambda} f(z(\lambda)) \Big|_{\lambda=0} = \nabla f(x^*)^T (x - x^*).
+\end{equation}
+
+\textbf{Solution)}\\
+Note that $\dfrac{d}{d\lambda}f(z(\lambda)) \stackrel{(i)}{=} \nabla f(z(\lambda))^T \dfrac{d}{d\lambda}z(\lambda) \stackrel{(ii)}{=} \nabla f(z(\lambda))^T (x - x^*)$ where (i) follows from the chain rule and (ii) follows from (\ref{convex-comb}). Hence, $\dfrac{d}{d\lambda}f(z(\lambda)) \Big|_{\lambda=0} = \nabla f(x^*)^T (x - x^*)$ as $z(0) = x^*$.
+\\
+
+\item Using the result in part (b), prove:
+\begin{align}
+f(x) \geq f(x^*) ~~\forall x~ \Longrightarrow ~\nabla f(x^*)^T (x-x^*) \geq 0 ~~\forall x.
+\end{align}
+\textbf{Solution)}\\
+(Proof by contradiction) Suppose that there exists some $x \in \textbf{dom}f$ s.t. $\nabla f(x^*)^T (x-x^*) < 0$. Then using the $z(\lambda)$ defined above, we get $\dfrac{d}{d\lambda}f(z(\lambda)) \Big|_{\lambda=0} = \nabla f(x^*)^T (x - x^*) < 0$, i.e. $f(z(\lambda))$ is a decreasing function in $\lambda$ (in the regime where $\lambda$ is close to $0$). Therefore, $f(z(\lambda)) < f(z(0)) = f(x^*)$ for $\lambda \approx 0$. This contradicts our assumption that $f(x) \geq f(x^*) ~\forall x \in \textbf{dom}f$, so the claim is proved.\\
+
+\item Using the result in part (c), prove the backward direction of the claim (2).\\\\
+\textbf{Solution)}\\
+(Proof by contradiction) Suppose that $\nabla f(x^*) \neq 0$ when $f(x) \geq f(x^*)~ \forall x \in \textbf{dom}f$. Here the key thing to note is that there is no constraint on $x$, except that $x \in \textbf{dom}f$. So one can choose $x$ such that $x-x^*$ points to an \textit{arbitrary} direction. This implies that we can easily choose $x$ such that $\nabla f(x^*)^T (x-x^*) < 0$. This contradicts (c) above that $\nabla f(x^*)^T (x-x^*) \geq 0 ~~\forall x$. Therefore we conclude that $\nabla f(x^*)^T (x-x^*) \geq 0 ~~\forall x \Longrightarrow \nabla f(x^*) = 0$.\\
+Through (a) $\sim$ (d), we conclude that the statement (\ref{opt-condition}) holds indeed.
+
+\end{enumerate}
+
+\item \textit{(Convex functions)} Let $f_i : \mathbf{R}^d \rightarrow \mathbf{R}$ be convex functions for $i=1,2$.
+
+\begin{enumerate}
+\item Show that $f_1 (x) + f_2 (x)$ is convex.\\\\
+\textbf{Solution)}\\
+Let $h(x)=f(x)+g(x)$. For all $x,y\in \textbf{dom}f\cap \textbf{dom}g$ and $\lambda \in [0,1]$,
+\begin{align*}
+	h(\lambda x+(1-\lambda)y)&=f(\lambda x+(1-\lambda)y)+g(\lambda x+(1-\lambda)y)\\
+							 &\stackrel{(1)}{\leq} \lambda f(x)+(1-\lambda)f(y)+\lambda g(x)+(1-\lambda)g(y)\\
+							 &\leq \lambda(f(x)+g(x))+(1-\lambda)(f(y)+g(y))\\
+							 &=\lambda h(x)+(1-\lambda)h(y)
+\end{align*}
+where (1) follows from the fact that $f(x)$ and $g(x)$ are convex.\\
+
+\item Show that $\mathrm{max}\big\{f_1 (x), f_2 (x) \big\}$ is convex.\\\\
+\textbf{Solution)}\\
+Let $f(x)=\max\{f_1(x),f_2(x)\}$. For all $x,y\in \textbf{dom}f_1\cap\textbf{dom}f_2$ and $\lambda \in [0,1]$,
+\begin{align*}
+	f(\lambda x+(1-\lambda)y)&=\max\{f_1(\lambda x+(1-\lambda)y),f_2(\lambda x+(1-\lambda)y)\}\\
+	&\leq \max\{\lambda f_1(x)+(1-\lambda)f_1(y),\lambda f_2(x)+(1-\lambda)f_2(y)\}\\ 
+	&\stackrel{(1)}{\leq} \lambda \max\{f_1(x),f_2(x)\}+(1-\lambda)\max\{f_1(y),f_2(y)\}\\
+	&=\lambda f(x) + (1-\lambda)f(y)
+\end{align*}
+where (1) follows from the fact that $f_i(x)\leq \max\{f_1(x),f_2(x)\}$ for any $i=1,2$.
+
+\end{enumerate}
+
+\item \textit{(2nd-order condition of convex functions)} Suppose $f: \mathbf{R}^d \rightarrow \mathbf{R}$ is twice differentiable, i.e., its Hessian (the second derivative) $\nabla^2 f$ exists at each point in \textbf{dom}$f$. Suppose that \textbf{dom}$f$ is a convex set, i.e., for $x_1, x_2 \in \textbf{dom}f$, $\lambda x_1 + (1 - \lambda)x_2 \in \textbf{dom}f$ for all $\lambda \in [0,1]$. This problem explores the proof of the following claim: $f$ is convex if and only if
+\begin{equation}
+f(x) \text{ is positive semi-definite (PSD), i.e., } \nabla^2 f(x) \succeq 0~~~ \forall x \in \textbf{dom}f. \label{PSD}
+\end{equation}
+
+\begin{enumerate}
+\item State the definition of a \textit{positive semi-definite matrix}.\\\\
+\textbf{Solution)}\\
+Suppose a matrix $A \in S^n$, i.e. $A$ is a real symmetric $n \times n$ matrix. Then, $A$ is called \textit{positive semi-definite} if $A$ satisfies $x^T A x \geq 0~~ \forall x \in \mathbf{R}^n$.\\
+
+\item Suppose that $d=1$. Show that if $f(x)$ is convex, then (\ref{PSD}) holds.\\\\
+\textbf{Solution)}\\
+Let $x,y \in \textbf{dom}f, y>x$. From the 1st-order condition of convexity, the followings hold:
+\begin{align*}
+f(y) &\geq f(x) + f'(x)(y-x) \\
+f(x) &\geq f(y) + f'(y)(x-y)
+\end{align*}
+Then, with some substractions, we have
+\begin{align*}
+f'(x)(y-x) \leq f(y) - f(x) \leq f'(y)(y-x).
+\end{align*}
+Dividing both the LHS and the RHS by $(y-x)^2$ gives
+\begin{align*}
+\dfrac{f'(y)-f'(x)}{y-x} \geq 0, ~~ \forall x,y, ~ x\neq y.
+\end{align*}
+By letting $y \rightarrow x$, we get
+\begin{align*}
+f''(x) \geq 0, ~~\forall x \in \textbf{dom}f.
+\end{align*}
+
+\item Suppose that $d=1$. Show that if (\ref{PSD}) holds, then $f(x)$ is convex.\\\\
+\textbf{Solution)}\\
+We employ the \textbf{Taylor's theorem} without a proof which states the following:
+\begin{equation*}
+f(y) = f(x) + f'(x)(y-x) + \dfrac{f''(z)}{2}(y-x)^2
+\end{equation*}
+for some point $z \in [x,y]$.\\
+Since $f''(x) \geq 0$,
+\begin{align*}
+f(y) \geq f(x) + f'(x)(y-x)
+\end{align*}
+Thus, f(x) in convex.
+
+\item Using the 1st-order condition of convex functions or otherwise, prove the 2nd-order condition for arbitrary $d$.\\\\
+\textbf{Solution)}\\
+Recall that convexity is equivalent to convexity along all lines; i.e., $f: \mathbf{R}^d \rightarrow \mathbf{R}$ is convex if $g(\alpha) = f(x_0 + \alpha v)$ is convex $\forall x_0 \in \textbf{dom}f$ and $\forall v \in \mathbf{R}^d$. Then, it's enough to show that $g(\alpha)$ is convex iff
+\begin{align*}
+g''(\alpha) = v^T \nabla^2 f(x_0 + \alpha v)v \geq 0,
+\end{align*}
+$\forall x_0 \in \textbf{dom}f, ~\forall v \in \mathbf{R}^d$ and $\forall \alpha$ s.t. $x_0 + \alpha v \in \textbf{dom}f$. Since it is the case of $d = 1$, we have shown it from (b) and (c). Hence, f is convex iff $\nabla^2 f(x) \succeq 0 ~~\forall x \in \textbf{dom}f$.
+
+\end{enumerate}
+
+\end{enumerate}
+
+
+
+\end{document}
