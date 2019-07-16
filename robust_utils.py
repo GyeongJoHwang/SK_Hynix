@@ -4,26 +4,33 @@ from __future__ import division
 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.datasets import make_moons, make_circles
+from tqdm import tqdm
 
-
-
-def generate_data(n_samples, set_type='Moon', p=0.8, seed=2019):
-    assert(set_type in ['Moon', 'Circle', 'Planar']), 'You must choice set type one of "Moon" or "Circle" or "Planar" !'
+# 정규분포를 따르는 합성데이터 생성함수 정의
+def generate_normal(n_samples, train_test_ratio=0.8, val_portion=0, seed=2019):
     np.random.seed(seed)
-    n_train = int(n_samples * p)
-    n_test = n_samples - n_train
-    if set_type == 'Moon':
-        X_train, Y_train = make_moons(n_samples=n_train, noise=0.2, random_state=2019)
-        X_test, Y_test = make_moons(n_samples=n_test, noise=0.3, random_state=2019)
-    elif set_type == 'Circle':
-        X_train, Y_train = make_circles(n_samples=n_train, noise=0.15, random_state=2019, factor=0.4)
-        X_test, Y_test = make_circles(n_samples=n_test, noise=0.25, random_state=2019, factor=0.4)
-    else:
-        X_train, Y_train = load_planar_dataset(n_samples=n_train, noise=0.2)
-        X_test, Y_test = load_planar_dataset(n_samples=n_test, noise=0.4)
+    n = n_samples // 2
+    n_train = int(n * train_test_ratio)
+    X1 = np.random.normal(loc=10, scale=5, size=(n, 2))
+    X2 = np.random.normal(loc=20, scale=5, size=(n, 2))
+    Y1 = np.ones(n)
+    Y2 = np.zeros(n)
+    X_test = np.concatenate((X1[n_train:], X2[n_train:]))
+    Y_test = np.concatenate((Y1[n_train:], Y2[n_train:]))
+    if val_portion:
+        n_val = int(n_train * val_portion)
+        X_val = np.concatenate((X1[:n_val], X2[:n_val]))
+        Y_val = np.concatenate((Y1[:n_val], Y2[:n_val])) 
+        X_train = np.concatenate((X1[n_val :n_train], X2[n_val :n_train]))
+        Y_train = np.concatenate((Y1[n_val :n_train], Y2[n_val :n_train]))
+        return (X_train.T, Y_train), (X_val.T, Y_val), (X_test.T, Y_test)
+    
+    X_train = np.concatenate((X1[:n_train], X2[:n_train]))
+    Y_train = np.concatenate((Y1[:n_train], Y2[:n_train]))
     return (X_train.T, Y_train), (X_test.T, Y_test)
 
+
+# 데이터 플롯 함수 정의
 def plot(data, labels, title='Train data', s=35, axis=False, xlim=None, ylim=None):
     plt.scatter(data.T[labels==1][:, 0], data.T[labels==1][:, 1], color='b', edgecolor='k', label='label : 1', s=s)
     plt.scatter(data.T[labels==0][:, 0], data.T[labels==0][:, 1], color='r', edgecolor='k', label='label : 0', s=s)
@@ -37,29 +44,31 @@ def plot(data, labels, title='Train data', s=35, axis=False, xlim=None, ylim=Non
         plt.xlim(*xlim)
     if ylim:
         plt.ylim(*ylim)
-        
-        
-def decision_boundary(parameters, xlim, ylim, colormap):
+    
+    
+    # Decision boundary를 그리는 함수정의
+# meshgrid 메소드이용
+def decision_boundary(w, b, xlim, ylim, colormap):
     xmin, xmax = xlim
     ymin, ymax = ylim
     xx, yy = np.meshgrid(np.linspace(xmin, xmax, 30), np.linspace(ymin, ymax, 30))
     grids = np.c_[xx.ravel(), yy.ravel()]
-    predict = _forward(grids.T, parameters)
+    predict, _ = forward(w, b, grids.T, None)
     Z = predict.reshape(xx.shape)
     plt.contour(xx, yy, Z, levels=[0.5], colors='k')
     if colormap == True:
         plt.contourf(xx, yy, Z, cmap='RdBu', alpha=0.7)
         
         
-def draw_boundary(parameters, data, labels, title='Train data', colormap=False, s=35, axis=False, xlim=None, ylim=None):
+def draw_boundary(w, b, data, labels, title='Train data', colormap=False, s=35, axis=False, xlim=None, ylim=None):
     # 먼저 데이터 플롯한다
-    plot(data, np.squeeze(labels), title=title, s=s, axis=axis, xlim=xlim, ylim=ylim)
+    plot(data, labels, title=title, s=s, axis=axis, xlim=xlim, ylim=ylim)
     axes = plt.gca() # 현재 플롯된 axes객체를 가져온다
     xlim = axes.get_xlim()
     ylim = axes.get_ylim()
     # 학습모델의 Decision boundary
-    decision_boundary(parameters, xlim, ylim, colormap)
-
+    decision_boundary(w, b, xlim, ylim, colormap)
+    
 def sigmoid(z):
     '''
     Compute the sigmoid of z
@@ -68,9 +77,6 @@ def sigmoid(z):
     '''
     return 1 / (1 + np.exp(-z))
 
-
-def ReLU(z):
-    return np.maximum(0, z)
 
 
 def initialize_weights(dim):
@@ -108,42 +114,17 @@ def forward(w, b, X, Y):
     """
     
     m = X.shape[1]
-    
+    eps = 1e-8
     # FORWARD PROPAGATION
     ### START CODE HERE ### (≈ 2 lines of code)
     Yhat = sigmoid(np.dot(w.T, X) + b)
-    cost = (- 1 / m) * np.sum(Y * np.log(Yhat) + (1 - Y) * (np.log(1 - Yhat)))
+    cost = None
+    if isinstance(Y, np.ndarray):
+        cost = (- 1 / m) * np.sum(Y * np.log(Yhat + eps) + (1 - Y) * (np.log(1 - Yhat + eps)))
     ### END CODE HERE ###
     
     return Yhat, cost
 
-# def _forward(w, b, X):
-
-#     m = X.shape[1]
-    
-#     # FORWARD PROPAGATION
-#     ### START CODE HERE ### (≈ 2 lines of code)
-#     Yhat = sigmoid(np.dot(w.T, X) + b)
-#     ### END CODE HERE ###
-    
-#     return Yhat
-
-# GRADED FUNCTION: forward_propagation
-
-def _forward(X, parameters):
-
-    W1 = parameters['W1']
-    b1 = parameters['b1']
-    W2 = parameters['W2']
-    b2 = parameters['b2']
-
-    Z1 = np.dot(W1, X) + b1
-    A1 = ReLU(Z1)
-    Z2 = np.dot(W2, A1) + b2
-    A2 = sigmoid(Z2)
-    
-    assert(A2.shape == (1, X.shape[1]))
-    return A2
 
 def backward(w, b, X, Y, Yhat):
     
@@ -195,7 +176,7 @@ def fit(w, b, X, Y, num_iterations, learning_rate, print_cost=False):
     
     costs = []
     
-    for i in range(num_iterations):
+    for i in tqdm(range(num_iterations)):
         
         # Cost and gradient calculation (≈ 1-4 lines of code)
         ### START CODE HERE ### 
@@ -262,7 +243,7 @@ def predict(w, b, X):
 
 # GRADED FUNCTION: model
 
-def Logistic(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rate=0.5, print_cost=False):
+def Logistic_regression(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rate=0.5, print_cost=False):
     """
     Builds the logistic regression model by calling the function you've implemented previously
     
@@ -288,8 +269,10 @@ def Logistic(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rat
     ### END CODE HERE ###
 
     # Print train/test Errors
-    print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - Y_train)) * 100))
-    print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - Y_test)) * 100))
+    train_acc = 100 - np.mean(np.abs(Y_prediction_train - Y_train)) * 100
+    test_acc = 100 - np.mean(np.abs(Y_prediction_test - Y_test)) * 100
+    print("train accuracy: {} %".format(train_acc))
+    print("test accuracy: {} %".format(test_acc))
 
     
     d = {"costs": costs,
@@ -298,125 +281,8 @@ def Logistic(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rat
          "w" : w, 
          "b" : b,
          "learning_rate" : learning_rate,
-         "num_iterations": num_iterations}
+         "num_iterations": num_iterations,
+        "train_acc":train_acc,
+        "test_acc":test_acc}
     
     return d
-
-
-def layer_sizes_test_case():
-    np.random.seed(1)
-    X_assess = np.random.randn(5, 3)
-    Y_assess = np.random.randn(2, 3)
-    return X_assess, Y_assess
-
-def initialize_parameters_test_case():
-    n_x, n_h, n_y = 2, 4, 1
-    return n_x, n_h, n_y
-
-def forward_propagation_test_case():
-    np.random.seed(1)
-    X_assess = np.random.randn(2, 3)
-
-    parameters = {'W1': np.array([[-0.00416758, -0.00056267],
-        [-0.02136196,  0.01640271],
-        [-0.01793436, -0.00841747],
-        [ 0.00502881, -0.01245288]]),
-     'W2': np.array([[-0.01057952, -0.00909008,  0.00551454,  0.02292208]]),
-     'b1': np.array([[ 0.],
-        [ 0.],
-        [ 0.],
-        [ 0.]]),
-     'b2': np.array([[ 0.]])}
-
-    return X_assess, parameters
-
-def compute_cost_test_case():
-    np.random.seed(1)
-    Y_assess = np.random.randn(1, 3)
-    parameters = {'W1': np.array([[-0.00416758, -0.00056267],
-        [-0.02136196,  0.01640271],
-        [-0.01793436, -0.00841747],
-        [ 0.00502881, -0.01245288]]),
-     'W2': np.array([[-0.01057952, -0.00909008,  0.00551454,  0.02292208]]),
-     'b1': np.array([[ 0.],
-        [ 0.],
-        [ 0.],
-        [ 0.]]),
-     'b2': np.array([[ 0.]])}
-
-    a2 = (np.array([[ 0.5002307 ,  0.49985831,  0.50023963]]))
-    
-    return a2, Y_assess, parameters
-
-def backward_propagation_test_case():
-    np.random.seed(1)
-    X_assess = np.random.randn(2, 3)
-    Y_assess = np.random.randn(1, 3)
-    parameters = {'W1': np.array([[-0.00416758, -0.00056267],
-        [-0.02136196,  0.01640271],
-        [-0.01793436, -0.00841747],
-        [ 0.00502881, -0.01245288]]),
-     'W2': np.array([[-0.01057952, -0.00909008,  0.00551454,  0.02292208]]),
-     'b1': np.array([[ 0.],
-        [ 0.],
-        [ 0.],
-        [ 0.]]),
-     'b2': np.array([[ 0.]])}
-
-    cache = {'A1': np.array([[-0.00616578,  0.0020626 ,  0.00349619],
-         [-0.05225116,  0.02725659, -0.02646251],
-         [-0.02009721,  0.0036869 ,  0.02883756],
-         [ 0.02152675, -0.01385234,  0.02599885]]),
-  'A2': np.array([[ 0.5002307 ,  0.49985831,  0.50023963]]),
-  'Z1': np.array([[-0.00616586,  0.0020626 ,  0.0034962 ],
-         [-0.05229879,  0.02726335, -0.02646869],
-         [-0.02009991,  0.00368692,  0.02884556],
-         [ 0.02153007, -0.01385322,  0.02600471]]),
-  'Z2': np.array([[ 0.00092281, -0.00056678,  0.00095853]])}
-    return parameters, cache, X_assess, Y_assess
-
-def update_parameters_test_case():
-    parameters = {'W1': np.array([[-0.00615039,  0.0169021 ],
-        [-0.02311792,  0.03137121],
-        [-0.0169217 , -0.01752545],
-        [ 0.00935436, -0.05018221]]),
- 'W2': np.array([[-0.0104319 , -0.04019007,  0.01607211,  0.04440255]]),
- 'b1': np.array([[ -8.97523455e-07],
-        [  8.15562092e-06],
-        [  6.04810633e-07],
-        [ -2.54560700e-06]]),
- 'b2': np.array([[  9.14954378e-05]])}
-
-    grads = {'dW1': np.array([[ 0.00023322, -0.00205423],
-        [ 0.00082222, -0.00700776],
-        [-0.00031831,  0.0028636 ],
-        [-0.00092857,  0.00809933]]),
- 'dW2': np.array([[ -1.75740039e-05,   3.70231337e-03,  -1.25683095e-03,
-          -2.55715317e-03]]),
- 'db1': np.array([[  1.05570087e-07],
-        [ -3.81814487e-06],
-        [ -1.90155145e-07],
-        [  5.46467802e-07]]),
- 'db2': np.array([[ -1.08923140e-05]])}
-    return parameters, grads
-
-def nn_model_test_case():
-    np.random.seed(1)
-    X_assess = np.random.randn(2, 3)
-    Y_assess = np.random.randn(1, 3)
-    return X_assess, Y_assess
-
-def predict_test_case():
-    np.random.seed(1)
-    X_assess = np.random.randn(2, 3)
-    parameters = {'W1': np.array([[-0.00615039,  0.0169021 ],
-        [-0.02311792,  0.03137121],
-        [-0.0169217 , -0.01752545],
-        [ 0.00935436, -0.05018221]]),
-     'W2': np.array([[-0.0104319 , -0.04019007,  0.01607211,  0.04440255]]),
-     'b1': np.array([[ -8.97523455e-07],
-        [  8.15562092e-06],
-        [  6.04810633e-07],
-        [ -2.54560700e-06]]),
-     'b2': np.array([[  9.14954378e-05]])}
-    return parameters, X_assess
